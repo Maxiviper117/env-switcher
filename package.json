@@ -1,0 +1,31 @@
+{
+  "name": "env-switcher",
+  "version": "1.0.0",
+  "description": "CLI tool for managing multiple environment configurations",
+  "module": "index.ts",
+  "type": "module",
+  "bin": {
+    "env-switch": "./index.ts"
+  },
+  "scripts": {
+    "build": "bun build ./index.ts --compile --outfile ./build/env-switch"
+  },
+  "files": [
+    "index.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": ["environment", "dotenv", "cli", "bun"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.8.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
+}
