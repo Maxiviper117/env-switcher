@@ -2,6 +2,60 @@
 
 A powerful and easy-to-use CLI tool for managing multiple environment configurations. Effortlessly switch between development, production, and other environments with a single command!
 
+## 📝 What It Does
+
+`env-switcher` simplifies environment management by allowing you to switch between different environment configurations for your application with ease. Here’s how it works:
+
+- **Switching Environments**: With a single command, `env-switcher` updates your project’s `.env` file to reflect the specified environment (e.g., `dev`, `prod`, `testing`).
+- **File Management**: The tool automatically manages environment files, ensuring that each environment has a corresponding `.env.<env>` file.
+- **Backs Up Active Configurations**: If an environment is already active, it backs up the current `.env` configuration, so you can revert if needed.
+- **Customizable Behavior**: You can force a switch without confirmation using the `-f` flag, or receive a prompt for added safety when switching to a sensitive environment like `prod`.
+- **Supports Various Environments**: Out-of-the-box support for common environments like `dev`, `prod`, `staging`, and `qa`, as well as custom options like `ci`, `cd`, and `preview`.
+
+This tool is designed for CI/CD workflows, staging deployments, and multi-environment development, making it ideal for projects that require frequent and smooth transitions between configurations.
+
+## 🌟 Example
+
+Let’s say you have the following environment files:
+
+```
+.env               # The active environment file
+.env.dev           # Development environment
+.env.prod          # Production environment
+.env.staging       # Staging environment
+.env.example       # Example template for new environments
+```
+
+Suppose you're currently in the `dev` environment and want to switch to `prod`. Here’s how `env-switcher` works in practice:
+
+1. Run the command to switch to `prod`:
+   ```bash
+   env-switch prod
+   ```
+   
+2. `env-switcher` will:
+   - **Backup** the current `.env` file as `.env.dev.active` (marking `dev` as previously active).
+   - **Rename** `.env.prod` to `.env.prod.active` to indicate it's currently in use.
+   - **Copy** the contents of `.env.prod` into `.env`, making it the new active environment configuration.
+
+### 📝 Example with Force Option
+Use the `--force` option to switch without confirmation:
+```bash
+env-switch prod -f   # 🔒 Force switch to production
+```
+
+### After Switching
+Your environment files would look like this:
+```
+.env               # Now contains production settings
+.env.dev.active    # Backup of the previous development environment
+.env.prod.active   # Indicates that production is the current environment
+.env.staging       # Unchanged, still available if needed
+.env.example       # Example template
+```
+
+This keeps all your environment configurations organized and ensures a safe, quick switch between environments.
+
 ## 🚀 Development Setup
 
 ### 📦 Installing Dependencies
@@ -90,9 +144,15 @@ env-switch prod   # 🚀 Switch to production environment
 env-switch test   # 🔍 Switch to testing environment
 ```
 
-### 📝 Example
-Use the `--force` option to switch without confirmation:
-```bash
-env-switch prod -f   # 🔒 Force switch to production
-```
+## 📝 Example Commands
+
+- **Switch to Development**:
+   ```bash
+   env-switch dev
+   ```
+
+- **Switch to Production with Force Option**:
+   ```bash
+   env-switch prod -f   # 🔒 Force switch to production without confirmation
+   ```
 
