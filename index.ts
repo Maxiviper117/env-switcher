@@ -1,4 +1,4 @@
-import { existsSync, copyFileSync, renameSync } from "bun:fs";
+import { existsSync, copyFileSync, renameSync, writeFileSync } from "bun:fs";
 import path from "path";
 import { Command } from "commander";
 import readline from "readline";
@@ -46,7 +46,7 @@ const logger = {
   error: (message: string) => console.error(`${chalk.red("❌")} ${message}`),
   warn: (message: string) => console.log(`${chalk.yellow("⚠️")} ${message}`),
   env: (name: Environment) => {
-    const colors = {
+    const colors: Record<Environment, chalk.Chalk> = {
       dev: chalk.green,
       prod: chalk.red,
       staging: chalk.blue,
@@ -90,7 +90,8 @@ ${chalk.yellow("📋 Examples:")}
     )}
   $ ${chalk.red("env-switch prod -f")} ${chalk.gray(
       "# 🚨 Force switch to production environment"
-    )}`
+    )}
+  `
   )
   .argument("<new_env>", "Environment to switch to")
   .option("-f, --force", "Force switch without confirmation")
@@ -178,12 +179,34 @@ function renameFile(source: string, destination: string): void {
   }
 }
 
+function createEmptyEnvFile(envFile: string): void {
+  try {
+    writeFileSync(envFile, "");
+    logger.success(`📝 Created empty .env file at ${chalk.cyan(envFile)}`);
+  } catch (error) {
+    logger.error(
+      `Error creating .env file at ${chalk.cyan(envFile)}: ${error}`
+    );
+    process.exit(1);
+  }
+}
+
 function switchToEnvironment(
   newEnv: Environment,
   activeEnv: Environment | null
 ): void {
   const envFile = getEnvFilePath();
   const newEnvFile = getEnvFilePath(newEnv);
+
+  // Check if .env exists; if not, create an empty one
+  if (!existsSync(envFile)) {
+    logger.warn(
+      `⚠️ .env file is missing. Creating an empty .env file at ${chalk.cyan(
+        envFile
+      )}.`
+    );
+    createEmptyEnvFile(envFile);
+  }
 
   if (activeEnv) {
     const activeEnvFile = getEnvFilePath(activeEnv, true);
@@ -193,7 +216,7 @@ function switchToEnvironment(
 
   if (!existsSync(newEnvFile)) {
     logger.warn(
-      `Environment file ${chalk.cyan(
+      `⚠️ Environment file ${chalk.cyan(
         newEnvFile
       )} does not exist. Creating from ${chalk.cyan(ENV_EXAMPLE)}.`
     );
