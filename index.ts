@@ -1,38 +1,98 @@
-/**
- * env-switcher - A CLI tool for managing multiple environment configurations
- * @license MIT
- */
-
 import { existsSync, copyFileSync, renameSync } from "bun:fs";
 import path from "path";
 import { Command } from "commander";
 import readline from "readline";
+import chalk from "chalk";
 
 // Types
-type Environment = 'dev' | 'prod' | 'testing';
+type Environment =
+  | "dev"
+  | "prod"
+  | "staging"
+  | "qa"
+  | "uat"
+  | "testing"
+  | "local"
+  | "dev-test"
+  | "ci"
+  | "cd"
+  | "preview";
+
 interface ProgramOptions {
   force: boolean;
 }
 
 // Constants
-const VALID_ENVS: Environment[] = ["dev", "prod", "testing"];
+const VALID_ENVS: Environment[] = [
+  "dev",
+  "prod",
+  "staging",
+  "qa",
+  "uat",
+  "testing",
+  "local",
+  "dev-test",
+  "ci",
+  "cd",
+  "preview",
+];
 const ENV_FILE_BASE = ".env";
 const ENV_EXAMPLE = ".env.example";
 
-// Logger
+// Enhanced logger with chalk colors and emojis
 const logger = {
-  info: (message: string) => console.log(`ℹ️ ${message}`),
-  success: (message: string) => console.log(`✅ ${message}`),
-  error: (message: string) => console.error(`❌ ${message}`),
+  info: (message: string) => console.log(`${chalk.blue("ℹ️")} ${message}`),
+  success: (message: string) => console.log(`${chalk.green("✅")} ${message}`),
+  error: (message: string) => console.error(`${chalk.red("❌")} ${message}`),
+  warn: (message: string) => console.log(`${chalk.yellow("⚠️")} ${message}`),
+  env: (name: Environment) => {
+    const colors = {
+      dev: chalk.green,
+      prod: chalk.red,
+      staging: chalk.blue,
+      qa: chalk.yellow,
+      uat: chalk.magenta,
+      testing: chalk.gray,
+      local: chalk.green,
+      "dev-test": chalk.blue,
+      ci: chalk.yellow,
+      cd: chalk.yellow,
+      preview: chalk.blue,
+    };
+    return colors[name](name);
+  },
 };
 
 // CLI Setup
 const program = new Command();
 program
-  .name("env-switch")
-  .version('1.0.0') // Match package.json version
-  .description("Switch between multiple environment configurations")
-  .argument("<new_env>", "New environment to switch to (dev, prod, or testing)")
+  .name(chalk.bold("env-switch"))
+  .version("1.0.0")
+  .description(
+    `${chalk.bold("🌐 Switch between multiple environment configurations")}
+
+${chalk.yellow("🔹 Available Environments:")}
+  ${chalk.cyan("Main:")}         ${logger.env("dev")}, ${logger.env(
+      "prod"
+    )}, ${logger.env("staging")}, ${logger.env("qa")}, ${logger.env(
+      "uat"
+    )}, ${logger.env("testing")}
+  ${chalk.cyan("Development:")}  ${logger.env("local")}, ${logger.env(
+      "dev-test"
+    )}
+  ${chalk.cyan("CI/CD:")}        ${logger.env("ci")}, ${logger.env(
+      "cd"
+    )}, ${logger.env("preview")}
+
+${chalk.yellow("📋 Examples:")}
+  $ ${chalk.green("env-switch dev")}     ${chalk.gray(
+      "# 🌱 Switch to development environment"
+    )}
+  $ ${chalk.red("env-switch prod -f")} ${chalk.gray(
+      "# 🚨 Force switch to production environment"
+    )}`
+  )
+  .argument("<new_env>", "Environment to switch to")
   .option("-f, --force", "Force switch without confirmation")
   .parse(process.argv);
 
@@ -40,9 +100,13 @@ const options = program.opts<ProgramOptions>();
 const newEnv = program.args[0].toLowerCase();
 const force = options.force;
 
-/**
- * Generates the environment file path based on environment and active status
- */
+class EnvironmentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EnvironmentError";
+  }
+}
+
 function getEnvFilePath(env?: string, isActive = false): string {
   let envFilePath = path.join(process.cwd(), ENV_FILE_BASE);
   if (env) {
@@ -54,16 +118,10 @@ function getEnvFilePath(env?: string, isActive = false): string {
   return envFilePath;
 }
 
-/**
- * Returns list of valid environments
- */
 function getValidEnvironments(): Environment[] {
   return VALID_ENVS;
 }
 
-/**
- * Gets the currently active environment
- */
 function getActiveEnvironment(): Environment | null {
   const validEnvs = getValidEnvironments();
   for (const env of validEnvs) {
@@ -75,55 +133,55 @@ function getActiveEnvironment(): Environment | null {
   return null;
 }
 
-/**
- * Validates and returns the new environment
- */
-class EnvironmentError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'EnvironmentError';
-  }
-}
-
 function getNewEnvironment(env: string): Environment {
   if (!VALID_ENVS.includes(env as Environment)) {
     throw new EnvironmentError(
-      `Invalid environment "${env}". Valid options are: ${VALID_ENVS.join(", ")}`
+      `❌ Invalid environment "${chalk.red(
+        env
+      )}". Valid options are:\n${VALID_ENVS.map((e) => logger.env(e)).join(
+        ", "
+      )}`
     );
   }
   return env as Environment;
 }
 
-/**
- * Safely copies a file with error handling
- */
 function copyFile(source: string, destination: string): void {
   try {
     copyFileSync(source, destination);
-    logger.success(`Copied ${source} to ${destination}`);
+    logger.success(
+      `📁 Copied ${chalk.cyan(source)} to ${chalk.cyan(destination)}`
+    );
   } catch (error) {
-    logger.error(`Error copying file from ${source} to ${destination}: ${error}`);
+    logger.error(
+      `Error copying file from ${chalk.cyan(source)} to ${chalk.cyan(
+        destination
+      )}: ${error}`
+    );
     process.exit(1);
   }
 }
 
-/**
- * Safely renames a file with error handling
- */
 function renameFile(source: string, destination: string): void {
   try {
     renameSync(source, destination);
-    logger.success(`Renamed ${source} to ${destination}`);
+    logger.success(
+      `🔄 Renamed ${chalk.cyan(source)} to ${chalk.cyan(destination)}`
+    );
   } catch (error) {
-    logger.error(`Error renaming file from ${source} to ${destination}: ${error}`);
+    logger.error(
+      `Error renaming file from ${chalk.cyan(source)} to ${chalk.cyan(
+        destination
+      )}: ${error}`
+    );
     process.exit(1);
   }
 }
 
-/**
- * Switches to the specified environment
- */
-function switchToEnvironment(newEnv: Environment, activeEnv: Environment | null): void {
+function switchToEnvironment(
+  newEnv: Environment,
+  activeEnv: Environment | null
+): void {
   const envFile = getEnvFilePath();
   const newEnvFile = getEnvFilePath(newEnv);
 
@@ -134,7 +192,11 @@ function switchToEnvironment(newEnv: Environment, activeEnv: Environment | null)
   }
 
   if (!existsSync(newEnvFile)) {
-    logger.info(`Environment file ${newEnvFile} does not exist. Creating from ${ENV_EXAMPLE}.`);
+    logger.warn(
+      `Environment file ${chalk.cyan(
+        newEnvFile
+      )} does not exist. Creating from ${chalk.cyan(ENV_EXAMPLE)}.`
+    );
     copyFile(ENV_EXAMPLE, newEnvFile);
   }
 
@@ -142,9 +204,6 @@ function switchToEnvironment(newEnv: Environment, activeEnv: Environment | null)
   renameFile(newEnvFile, getEnvFilePath(newEnv, true));
 }
 
-/**
- * Prompts user for input with proper cleanup
- */
 async function promptUser(question: string): Promise<string> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -153,7 +212,7 @@ async function promptUser(question: string): Promise<string> {
 
   try {
     return await new Promise((resolve) => {
-      rl.question(question, (answer) => {
+      rl.question(chalk.yellow(`🤔 ${question}`), (answer) => {
         resolve(answer);
       });
     });
@@ -162,35 +221,40 @@ async function promptUser(question: string): Promise<string> {
   }
 }
 
-/**
- * Main execution function
- */
 async function main(): Promise<void> {
   try {
     const targetEnv = getNewEnvironment(newEnv);
     const activeEnv = getActiveEnvironment();
 
-    logger.info(`New Environment:\t${targetEnv}`);
-    logger.info(`Active Environment:\t${activeEnv || "None"}`);
+    logger.info(`🌍 New Environment:\t${logger.env(targetEnv)}`);
+    logger.info(
+      `⚙️ Active Environment:\t${
+        activeEnv ? logger.env(activeEnv) : chalk.gray("None")
+      }`
+    );
 
     if (targetEnv === activeEnv) {
-      logger.info(`No action needed. Already in "${targetEnv}" environment.`);
+      logger.info(
+        `🎉 No action needed. Already in ${logger.env(targetEnv)} environment.`
+      );
       return;
     }
 
     let proceed = force;
     if (!force) {
       const answer = await promptUser(
-        `Are you sure you want to switch to "${targetEnv}"? (y/n): `
+        `Are you sure you want to switch to ${logger.env(targetEnv)}? (y/n): `
       );
       proceed = answer.trim().toLowerCase() === "y";
     }
 
     if (proceed) {
       switchToEnvironment(targetEnv, activeEnv);
-      logger.success(`Successfully switched to "${targetEnv}" environment.`);
+      logger.success(
+        `🎊 Successfully switched to ${logger.env(targetEnv)} environment.`
+      );
     } else {
-      logger.info("Operation cancelled.");
+      logger.info("❎ Operation cancelled.");
     }
   } catch (error) {
     if (error instanceof EnvironmentError) {
@@ -202,8 +266,7 @@ async function main(): Promise<void> {
   }
 }
 
-// Execute with error handling
 main().catch((error) => {
-  logger.error(`Fatal error: ${error}`);
+  logger.error(`💥 Fatal error: ${error}`);
   process.exit(1);
 });
